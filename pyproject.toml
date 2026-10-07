@@ -1,0 +1,27 @@
+[project]
+name = "file-transfer"
+version = "0.1.0"
+description = "Small FastAPI server for transferring files"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.142.2",
+    "nicegui>=3.17.1",
+    "pydantic-settings>=2.15.0",
+    "python-multipart>=0.0.32",
+]
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "server"
+
+[tool.fastapi]
+entrypoint = "server.main:app"
+
+[dependency-groups]
+dev = [
+    "debugpy>=1.8.22",
+]

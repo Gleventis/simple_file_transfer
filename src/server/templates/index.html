@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>File Transfer</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 700px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    #file-list {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 16px;
+
+      max-height: 640px;
+      overflow-y: auto;
+    }
+
+    .file-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      min-height: 32px;
+      padding: 4px 6px;
+    }
+
+    .file-row + .file-row {
+      border-top: 1px solid #eee;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>File Transfer</h1>
+
+  <div id="file-list"></div>
+
+  <div class="actions">
+    <button id="toggle-all-button">
+      Select all
+    </button>
+
+    <button id="download-button">
+      Download selected
+    </button>
+  </div>
+
+  <script>
+    async function loadFiles() {
+      const response = await fetch("/fts/available_files");
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load files: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+      const files = data.available_files;
+
+      const fileList = document.getElementById("file-list");
+
+      files.forEach((file) => {
+        const row = document.createElement("div");
+        row.className = "file-row";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = file.name;
+
+        const label = document.createElement("span");
+        label.textContent =
+          `${file.name} - ${file.size} bytes`;
+
+        row.appendChild(checkbox);
+        row.appendChild(label);
+
+        fileList.appendChild(row);
+      });
+    }
+
+    async function downloadSelectedFiles() {
+      const checkedBoxes = document.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      );
+
+      const files = Array.from(checkedBoxes).map(
+        (checkbox) => checkbox.value
+      );
+
+      if (files.length === 0) {
+        alert("Select at least one file");
+        return;
+      }
+
+      const response = await fetch("/fts/download", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: files,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Download failed: ${response.status}`
+        );
+      }
+
+      const blob = await response.blob();
+
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "files.zip";
+
+      document.body.appendChild(link);
+
+      link.click();
+
+      link.remove();
+
+      URL.revokeObjectURL(url);
+    }
+
+    const toggleAllButton =
+      document.getElementById("toggle-all-button");
+
+    toggleAllButton.addEventListener("click", () => {
+      const checkboxes =
+        document.querySelectorAll(
+          'input[type="checkbox"]'
+        );
+
+      const allSelected =
+        Array.from(checkboxes).every(
+          (checkbox) => checkbox.checked
+        );
+
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = !allSelected;
+      });
+
+      toggleAllButton.textContent =
+        allSelected
+          ? "Select all"
+          : "Deselect all";
+    });
+
+    document
+      .getElementById("download-button")
+      .addEventListener(
+        "click",
+        () => {
+          downloadSelectedFiles().catch((error) => {
+            console.error(
+              "Download failed:",
+              error
+            );
+          });
+        }
+      );
+
+    loadFiles().catch((error) => {
+      console.error(
+        "Failed to load files:",
+        error
+      );
+    });
+  </script>
+</body>
+</html>
